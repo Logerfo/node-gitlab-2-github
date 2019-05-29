@@ -39,8 +39,8 @@ var gitlab = new Gitlab({
 // Create a GitHub API object
 var github = new GitHubApi({
   debug: false,
-  baseUrl: (settings.github.baseUrl?settings.github.baseUrl:"https://api.github.com"),
-  timeout: 5000,
+  baseUrl: (settings.github.baseUrl ? settings.github.baseUrl : "https://api.github.com"),
+  timeout: 30000,
   headers: {
     'user-agent': 'node-gitlab-2-github', // GitHub is happy with a unique user agent
     'accept': 'application/vnd.github.v3+json',
