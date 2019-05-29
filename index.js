@@ -591,20 +591,27 @@ async function createPullRequest(owner, repo, pullRequest) {
     // create the GitHub pull request from the GitLab issue
     return github.pulls.create(props);
   } else {
-    // Create an issue with a descriptive title
-    let mergeStr = "_Merges " + pullRequest.source_branch + " -> " + pullRequest.target_branch + "_\n\n";
-    let bodyConverted = convertIssuesAndComments(mergeStr + pullRequest.description, pullRequest);
-    let props = {
-      owner: owner,
-      repo: repo,
-      title: pullRequest.title.trim() + " - [" + pullRequest.state + "]",
-      body: bodyConverted
-    };
+    let title = pullRequest.title.trim() + " - [" + pullRequest.state + "]";
+    let ghIssues = await getAllGHIssues(settings.github.owner, settings.github.repo);
+    if (!ghIssues.find(i => i.title.trim() === title)) {
+      // Create an issue with a descriptive title
+      let mergeStr = "_Merges " + pullRequest.source_branch + " -> " + pullRequest.target_branch + "_\n\n";
+      let bodyConverted = convertIssuesAndComments(mergeStr + pullRequest.description, pullRequest);
+      let props = {
+        owner: owner,
+        repo: repo,
+        title: title,
+        body: bodyConverted
+      };
 
     // Add a label to indicate the issue is a merge request
     pullRequest.labels.push('gitlab merge request');
 
-    return github.issues.create(props);
+      return github.issues.create(props);
+    }
+    else {
+      console.log("Already exists: " + title);
+    }
   }
 }
 
