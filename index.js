@@ -10,7 +10,7 @@ const sleep = (milliseconds) => {
 var settings = null;
 try {
   settings = require('./settings.js');
-} catch(e) {
+} catch (e) {
   if (e.code === 'MODULE_NOT_FOUND') {
     console.log('\n\nPlease copy the sample_settings.js to settings.js.');
   } else {
@@ -66,7 +66,7 @@ if (settings.gitlab.projectId === null) {
  */
 async function listProjects() {
   try {
-    let projects = await gitlab.Projects.all({membership: true});
+    let projects = await gitlab.Projects.all({ membership: true });
 
     // print each project with info
     for (let i = 0; i < projects.length; i++) {
@@ -101,13 +101,13 @@ async function migrate() {
   //
 
   // transfer GitLab milestones to GitHub
-  await transferMilestones(settings.gitlab.projectId);
+  //await transferMilestones(settings.gitlab.projectId);
 
   // transfer GitLab labels to GitHub
-  await transferLabels(settings.gitlab.projectId, true, settings.conversion.useLowerCaseLabels);
+  //await transferLabels(settings.gitlab.projectId, true, settings.conversion.useLowerCaseLabels);
 
   // Transfer issues with their comments; do this before transferring the merge requests
-  await transferIssues(settings.github.owner, settings.github.repo, settings.gitlab.projectId);
+  //await transferIssues(settings.github.owner, settings.github.repo, settings.gitlab.projectId);
 
   if (settings.mergeRequests.log) {
     // log merge requests
@@ -138,20 +138,20 @@ async function transferMilestones(projectId) {
 
   // if a GitLab milestone does not exist in GitHub repo, create it.
   for (let milestone of milestones) {
-      if (!ghMilestones.find(m => m.title === milestone.title)) {
-        console.log("Creating: " + milestone.title);
-        try {
+    if (!ghMilestones.find(m => m.title === milestone.title)) {
+      console.log("Creating: " + milestone.title);
+      try {
 
-          // process asynchronous code in sequence
-          await createMilestone(settings.github.owner, settings.github.repo, milestone);
+        // process asynchronous code in sequence
+        await createMilestone(settings.github.owner, settings.github.repo, milestone);
 
-        } catch (err) {
-          console.error("Could not create milestone", milestone.title);
-          console.error(err);
-        }
-      } else {
-        console.log("Already exists: " + milestone.title);
+      } catch (err) {
+        console.error("Could not create milestone", milestone.title);
+        console.error(err);
       }
+    } else {
+      console.log("Already exists: " + milestone.title);
+    }
   };
 
 }
@@ -172,36 +172,36 @@ async function transferLabels(projectId, attachmentLabel = true, useLowerCase = 
 
   // create a hasAttachment label for manual attachment migration
   if (attachmentLabel) {
-    const hasAttachmentLabel = {name: 'has attachment', color: '#fbca04'};
+    const hasAttachmentLabel = { name: 'has attachment', color: '#fbca04' };
     labels.push(hasAttachmentLabel);
   }
 
   // create gitlabMergeRequest label for non-migratable merge requests
-  const gitlabMergeRequestLabel = {name: 'gitlab merge request', color: '#b36b00'};
+  const gitlabMergeRequestLabel = { name: 'gitlab merge request', color: '#b36b00' };
   labels.push(gitlabMergeRequestLabel);
 
   // if a GitLab label does not exist in GitHub repo, create it.
   for (let label of labels) {
 
-      // GitHub prefers lowercase label names
-      if (useLowerCase) {
-        label.name = label.name.toLowerCase()
+    // GitHub prefers lowercase label names
+    if (useLowerCase) {
+      label.name = label.name.toLowerCase()
+    }
+
+    if (!ghLabels.find(l => l === label.name)) {
+      console.log("Creating: " + label.name);
+      try {
+
+        // process asynchronous code in sequence
+        await createLabel(settings.github.owner, settings.github.repo, label).catch(x => { });
+
+      } catch (err) {
+        console.error("Could not create label", label.name);
+        console.error(err);
       }
-
-      if (!ghLabels.find(l => l === label.name)) {
-        console.log("Creating: " + label.name);
-        try {
-
-          // process asynchronous code in sequence
-          await createLabel(settings.github.owner, settings.github.repo, label).catch(x=>{});
-
-        } catch (err) {
-          console.error("Could not create label", label.name);
-          console.error(err);
-        }
-      } else {
-        console.log("Already exists: " + label.name);
-      }
+    } else {
+      console.log("Already exists: " + label.name);
+    }
   };
 }
 
@@ -218,7 +218,7 @@ async function transferIssues(owner, repo, projectId) {
 
   // get a list of all GitLab issues associated with this project
   // TODO return all issues via pagination
-  let issues = await gitlab.Issues.all({projectId: projectId});
+  let issues = await gitlab.Issues.all({ projectId: projectId });
 
   // sort issues in ascending order of their issue number (by iid)
   issues = issues.sort((a, b) => a.iid - b.iid);
@@ -232,9 +232,9 @@ async function transferIssues(owner, repo, projectId) {
   // Create Placeholder Issues
   //
 
-  for (let i=0; i<issues.length; i++) {
+  for (let i = 0; i < issues.length; i++) {
     // GitLab issue internal Id (iid)
-    let expectedIdx = i+1;
+    let expectedIdx = i + 1;
 
     // is there a gap in the GitLab issues?
     // Create placeholder issues so that new GitHub issues will have the same
@@ -296,7 +296,7 @@ async function transferMergeRequests(owner, repo, projectId) {
 
   // Get a list of all pull requests (merge request equivalent) associated with
   // this project
-  let mergeRequests = await gitlab.MergeRequests.all({projectId: projectId});
+  let mergeRequests = await gitlab.MergeRequests.all({ projectId: projectId });
 
   // Sort merge requests in ascending order of their number (by iid)
   mergeRequests = mergeRequests.sort((a, b) => a.iid - b.iid);
@@ -327,7 +327,7 @@ async function transferMergeRequests(owner, repo, projectId) {
         console.error("Could not create pull request: !" + request.iid + " - " + request.title);
         console.error(err);
       }
-    }else{
+    } else {
       console.log("Pull request already exists: " + request.iid + " - " + request.title);
       updatePullRequestState(ghRequest, request);
     }
@@ -344,7 +344,7 @@ async function logMergeRequests(projectId, logFile) {
 
   // get a list of all GitLab merge requests associated with this project
   // TODO return all MRs via pagination
-  let mergeRequests = await gitlab.MergeRequests.all({projectId: projectId});
+  let mergeRequests = await gitlab.MergeRequests.all({ projectId: projectId });
 
   // sort MRs in ascending order of when they were created (by id)
   mergeRequests = mergeRequests.sort((a, b) => a.id - b.id);
@@ -378,10 +378,10 @@ async function getAllGHMilestones(owner, repo) {
   try {
     await sleep(2000);
     // get an array of GitHub milestones for the new repo
-    let result = await github.issues.listMilestonesForRepo({owner: owner, repo: repo, state: 'all'});
+    let result = await github.issues.listMilestonesForRepo({ owner: owner, repo: repo, state: 'all' });
 
     // extract the milestone number and title and put into a new array
-    let milestones = result.data.map(x => ({number: x.number, title: x.title}));
+    let milestones = result.data.map(x => ({ number: x.number, title: x.title }));
 
     return milestones;
   } catch (err) {
@@ -400,7 +400,7 @@ async function getAllGHLabelNames(owner, repo) {
   try {
     await sleep(2000);
     // get an array of GitHub labels for the new repo
-    let result = await github.issues.listLabelsForRepo({owner: owner, repo: repo});
+    let result = await github.issues.listLabelsForRepo({ owner: owner, repo: repo });
 
     // extract the label name and put into a new array
     let labels = result.data.map(x => x.name);
@@ -427,7 +427,7 @@ async function getAllGHIssues(owner, repo) {
   while (true) {
     await sleep(2000);
     // get a paginated list of issues
-    const issues = await github.issues.listForRepo({owner: owner, repo: repo, state: 'all', per_page: perPage, page: page });
+    const issues = await github.issues.listForRepo({ owner: owner, repo: repo, state: 'all', per_page: perPage, page: page });
 
     // if this page has zero issues then we are done!
     if (issues.data.length === 0)
@@ -462,7 +462,7 @@ async function getAllGHPullRequests(owner, repo) {
   while (true) {
     await sleep(2000);
     // get a paginated list of pull requests
-    const pullRequests = await github.pulls.list({owner: owner, repo: repo, state: 'all', per_page: perPage, page: page });
+    const pullRequests = await github.pulls.list({ owner: owner, repo: repo, state: 'all', per_page: perPage, page: page });
 
     // if this page has zero PRs then we are done!
     if (pullRequests.data.length === 0)
@@ -495,19 +495,21 @@ async function getAllGHPullRequests(owner, repo) {
  */
 async function createPullRequestAndComments(owner, repo, milestones, pullRequest) {
   let ghPullRequestData = await createPullRequest(owner, repo, pullRequest);
-  let ghPullRequest = ghPullRequestData.data;
+  if (ghPullRequestData) {
+    let ghPullRequest = ghPullRequestData.data;
 
-  // data is set to null if one of the branches does not exist and the pull request cannot be created
-  if (ghPullRequest) {
+    // data is set to null if one of the branches does not exist and the pull request cannot be created
+    if (ghPullRequest) {
 
-    // Add milestones, labels, and other attributes from the Issues API
-    await updatePullRequestData(ghPullRequest, pullRequest, milestones);
+      // Add milestones, labels, and other attributes from the Issues API
+      await updatePullRequestData(ghPullRequest, pullRequest, milestones);
 
-    // add any comments/nodes associated with this pull request
-    await createPullRequestComments(ghPullRequest, pullRequest);
+      // add any comments/nodes associated with this pull request
+      await createPullRequestComments(ghPullRequest, pullRequest);
 
-    // Make sure to close the GitHub pull request if it is closed or merged in GitLab
-    await updatePullRequestState(ghPullRequest, pullRequest);
+      // Make sure to close the GitHub pull request if it is closed or merged in GitLab
+      await updatePullRequestState(ghPullRequest, pullRequest);
+    }
   }
 }
 
@@ -536,12 +538,12 @@ async function createPullRequest(owner, repo, pullRequest) {
   } catch (err) {
 
     let glBranches = await gitlab.Branches.all(settings.gitlab.projectId);
-    if(glBranches.find(m => m.name === pullRequest.target_branch)){
+    if (glBranches.find(m => m.name === pullRequest.target_branch)) {
       // Need to move that branch over to GitHub!
       console.error("The " + pullRequest.target_branch + " branch exists on GitLab but has not been migrated to GitHub." +
         " Please migrate the branch before migrating merge request !" + pullRequest.iid);
-      return Promise.resolve({data: null});
-    }else{
+      return Promise.resolve({ data: null });
+    } else {
       console.error("Merge request !" + pullRequest.iid + ", target branch: " + pullRequest.target_branch + " does not exist");
       console.error("Thus, cannot migrate merge request; creating an issue instead");
       canCreate = false;
@@ -559,21 +561,21 @@ async function createPullRequest(owner, repo, pullRequest) {
   } catch (err) {
 
     let glBranches = await gitlab.Branches.all(settings.gitlab.projectId);
-    if(glBranches.find(m => m.name === pullRequest.source_branch)){
+    if (glBranches.find(m => m.name === pullRequest.source_branch)) {
       // Need to move that branch over to GitHub!
       console.error("The " + pullRequest.source_branch + " branch exists on GitLab but has not been migrated to GitHub." +
-          " Please migrate the branch before migrating merge request !" + pullRequest.iid);
-      return Promise.resolve({data: null});
-    }else{
+        " Please migrate the branch before migrating merge request !" + pullRequest.iid);
+      return Promise.resolve({ data: null });
+    } else {
       console.error("Merge request !" + pullRequest.iid + ", source branch: " + pullRequest.source_branch + " does not exist");
       console.error("Thus, cannot migrate merge request; creating an issue instead");
       canCreate = false;
     }
   }
 
-  if(settings.debug) return Promise.resolve({data: pullRequest});
+  if (settings.debug) return Promise.resolve({ data: pullRequest });
 
-  if(canCreate) {
+  if (canCreate) {
     let bodyConverted = convertIssuesAndComments(pullRequest.description, pullRequest);
 
     // GitHub API Documentation to create a pull request: https://developer.github.com/v3/pulls/#create-a-pull-request
@@ -604,8 +606,8 @@ async function createPullRequest(owner, repo, pullRequest) {
         body: bodyConverted
       };
 
-    // Add a label to indicate the issue is a merge request
-    pullRequest.labels.push('gitlab merge request');
+      // Add a label to indicate the issue is a merge request
+      pullRequest.labels.push('gitlab merge request');
 
       return github.issues.create(props);
     }
@@ -625,30 +627,30 @@ async function createPullRequest(owner, repo, pullRequest) {
  */
 async function createPullRequestComments(ghPullRequest, pullRequest) {
 
-  if ( !(pullRequest.iid) ){
+  if (!(pullRequest.iid)) {
     console.log("This is a placeholder for a deleted GitLab merge request; no comments are created");
     return Promise.resolve();
   }
 
   // retrieve any notes/comments associated with this merge request
-  try{
+  try {
     let notes = await gitlab.MergeRequestNotes.all(settings.gitlab.projectId, pullRequest.iid);
 
     // If there are no nodes, then there is nothing to do!
-    if(notes.length == 0) return;
+    if (notes.length == 0) return;
 
     // Sort notes in ascending order of when they were created (by id)
     notes = notes.sort((a, b) => a.id - b.id);
 
     for (let note of notes) {
       if ((/Status changed to .*/i.test(note.body) && !/Status changed to closed by commit.*/i.test(note.body)) ||
-          /changed milestone to .*/i.test(note.body) ||
-          /Milestone changed to .*/i.test(note.body) ||
-          /Reassigned to /i.test(note.body) ||
-          /added .* labels/i.test(note.body) ||
-          /Added ~.* label/i.test(note.body) ||
-          /removed ~.* label/i.test(note.body) ||
-          /mentioned in issue.*/i.test(note.body)) {
+        /changed milestone to .*/i.test(note.body) ||
+        /Milestone changed to .*/i.test(note.body) ||
+        /Reassigned to /i.test(note.body) ||
+        /added .* labels/i.test(note.body) ||
+        /Added ~.* label/i.test(note.body) ||
+        /removed ~.* label/i.test(note.body) ||
+        /mentioned in issue.*/i.test(note.body)) {
         // Don't transfer when the state changed (this is a note in GitLab)
       } else {
 
@@ -663,15 +665,15 @@ async function createPullRequestComments(ghPullRequest, pullRequest) {
         // Use the GitHub Issues API to create comments (all pull requests are issues); Pull request comments are more
         // specialized: see <https://developer.github.com/v3/pulls/comments/>
         await github.issues.createComment({
-            owner: settings.github.owner,
-            repo: settings.github.repo,
-            number: ghPullRequest.number,
-            body: bodyConverted
-          }).catch(x=>{
-            console.error("could not create GitHub pull request comment!");
-            console.error(x);
-            process.exit(1);
-          });
+          owner: settings.github.owner,
+          repo: settings.github.repo,
+          number: ghPullRequest.number,
+          body: bodyConverted
+        }).catch(x => {
+          console.error("could not create GitHub pull request comment!");
+          console.error(x);
+          process.exit(1);
+        });
 
       }
     }
@@ -707,7 +709,7 @@ async function updatePullRequestData(ghPullRequest, pullRequest, milestones) {
   // but only if the username is a valid GitHub username
   if (pullRequest.assignee) {
     props.assignees = [];
-    if (pullRequest.assignee.username == settings.github.username){
+    if (pullRequest.assignee.username == settings.github.username) {
       props.assignees.push(settings.github.username);
     } else if (settings.usermap && settings.usermap[pullRequest.assignee.username]) {
       // Get GitHub username from settings
@@ -773,7 +775,7 @@ async function updatePullRequestState(ghPullRequest, pullRequest) {
 
   await sleep(2000);
 
-  if(settings.debug){
+  if (settings.debug) {
     return Promise.resolve();
   }
 
@@ -869,7 +871,7 @@ async function createIssue(owner, repo, milestones, issue) {
   }
   await sleep(2000);
 
-  if (settings.debug) return Promise.resolve({data: issue});
+  if (settings.debug) return Promise.resolve({ data: issue });
   // create the GitHub issue from the GitLab issue
   return github.issues.create(props);
 }
@@ -881,7 +883,7 @@ async function createIssue(owner, repo, milestones, issue) {
  */
 async function createIssueComments(ghIssue, issue) {
   // retrieve any notes/comments associated with this issue
-  if ( !(issue.iid) ) {
+  if (!(issue.iid)) {
     console.log("Placeholder issue; no comments are migrated.");
     return;
   }
@@ -898,13 +900,13 @@ async function createIssueComments(ghIssue, issue) {
     for (let note of notes) {
 
       if ((/Status changed to .*/i.test(note.body) && !/Status changed to closed by commit.*/i.test(note.body)) ||
-          /changed milestone to .*/i.test(note.body) ||
-          /Milestone changed to .*/i.test(note.body) ||
-          /Reassigned to /i.test(note.body) ||
-          /added .* labels/i.test(note.body) ||
-          /Added ~.* label/i.test(note.body) ||
-          /removed ~.* label/i.test(note.body) ||
-          /mentioned in issue.*/i.test(note.body)) {
+        /changed milestone to .*/i.test(note.body) ||
+        /Milestone changed to .*/i.test(note.body) ||
+        /Reassigned to /i.test(note.body) ||
+        /added .* labels/i.test(note.body) ||
+        /Added ~.* label/i.test(note.body) ||
+        /removed ~.* label/i.test(note.body) ||
+        /mentioned in issue.*/i.test(note.body)) {
         // Don't transfer when the state changed (this is a note in GitLab)
       } else {
 
@@ -918,15 +920,15 @@ async function createIssueComments(ghIssue, issue) {
         }
         // process asynchronous code in sequence -- treats kind of like blocking
         await github.issues.createComment({
-                    owner: settings.github.owner,
-                    repo: settings.github.repo,
-                    number: ghIssue.number,
-                    body: bodyConverted
-                  }).catch(x=>{
-                    console.error("could not create GitHub issue comment!");
-                    console.error(x);
-                    process.exit(1);
-                  });
+          owner: settings.github.owner,
+          repo: settings.github.repo,
+          number: ghIssue.number,
+          body: bodyConverted
+        }).catch(x => {
+          console.error("could not create GitHub issue comment!");
+          console.error(x);
+          process.exit(1);
+        });
 
       }
 
@@ -1021,7 +1023,7 @@ async function createLabel(owner, repo, label) {
 function convertIssuesAndComments(str, item) {
 
   if ((settings.usermap == null || Object.keys(settings.usermap).length == 0) &&
-        (settings.projectmap == null || Object.keys(settings.projectmap).length == 0)) {
+    (settings.projectmap == null || Object.keys(settings.projectmap).length == 0)) {
     return addMigrationLine(str, item);
   } else {
     // - Replace userids as defined in settings.usermap.
@@ -1036,7 +1038,7 @@ function convertIssuesAndComments(str, item) {
         return '@' + settings.usermap[matched.substr(1)];
       } else if (matched.endsWith('#')) {
         // this is a cross-project issue reference
-        return settings.projectmap[matched.substring(0, matched.length-1)] + '#';
+        return settings.projectmap[matched.substring(0, matched.length - 1)] + '#';
       } else {
         // something went wrong, do nothing
         return matched;
@@ -1092,7 +1094,7 @@ function generateUserProjectRe() {
     reString += Object.keys(settings.projectmap).join('#|') + '#';
   }
 
-  return new RegExp(reString,'g');
+  return new RegExp(reString, 'g');
 }
 
 // ----------------------------------------------------------------------------
